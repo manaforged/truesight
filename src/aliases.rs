@@ -41,12 +41,18 @@ impl Surface {
     }
 
     pub fn prelude_names(&self) -> BTreeSet<&str> {
+        self.prelude
+            .as_deref()
+            .map_or_else(BTreeSet::new, |prelude| self.children(prelude))
+    }
+
+    pub fn children(&self, module: &str) -> BTreeSet<&str> {
         self.entries
             .iter()
-            .filter(|entry| self.in_prelude(&entry.path))
+            .filter(|entry| entry.kind != Kind::Impl && !entry.trait_impl)
             .filter_map(|entry| {
-                let rest = entry.path.strip_prefix(self.prelude.as_deref()?)?;
-                rest.strip_prefix("::").filter(|name| !name.contains("::"))
+                let rest = entry.path.strip_prefix(module)?.strip_prefix("::")?;
+                (!rest.contains("::")).then_some(rest)
             })
             .collect()
     }

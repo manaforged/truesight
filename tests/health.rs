@@ -2,7 +2,7 @@ mod support;
 
 use support::{CONFIG, Fixture, Run};
 
-const DOCS: &str = "# API\n\n## Prelude\n\n| Name | Purpose |\n| --- | --- |\n| `Paint` | Paints. |\n\n## Items\n\n| Name | Purpose |\n| :--- | --- |\n| `shapes::Circle` | A circle. |\n| `get`, `always` | Numbers. |\n";
+const DOCS: &str = "# API\n\n## Prelude\n\n| Name | Purpose |\n| --- | --- |\n| `Paint` | Paints. |\n| `Paint::paint` | The method. |\n\n## Items\n\n| Name | Purpose |\n| :--- | --- |\n| `shapes::Circle` | A circle. |\n| `get`, `always` | Numbers. |\n";
 
 fn journeys(fixture: &Fixture, budgets: &str) -> Run {
     fixture.write(

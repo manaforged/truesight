@@ -121,13 +121,7 @@ fn section(
     } else {
         format!("{}::{module}", surface.name)
     };
-    let members: BTreeSet<&str> = surface
-        .named()
-        .into_iter()
-        .flat_map(|named| named.paths)
-        .filter_map(|path| path.strip_prefix(base.as_str())?.strip_prefix("::"))
-        .filter(|rest| !rest.contains("::"))
-        .collect();
+    let members = surface.children(&base);
     let listed: Vec<&Row> = rows
         .iter()
         .filter(|row| row.headings.iter().any(|title| title == heading))
@@ -139,10 +133,13 @@ fn section(
     }
     let mut names = BTreeSet::new();
     for row in listed {
-        let Some(first) = row.first.first() else {
+        let [first] = row.first.as_slice() else {
             continue;
         };
         let name = clean(first);
+        if name.contains("::") {
+            continue;
+        }
         names.insert(name);
         if !members.contains(name) {
             gaps.stale.push(format!(
