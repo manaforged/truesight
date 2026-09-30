@@ -1,8 +1,9 @@
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 use std::thread::{self, ScopedJoinHandle};
 
-use crate::config::{Crate, Project};
+use crate::config::Project;
 use crate::error::Error;
+use crate::package::Crate;
 use crate::surface::{Entry, Kind, Listing};
 
 const DEPRECATED: &str = "#[deprecated] ";

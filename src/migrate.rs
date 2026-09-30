@@ -6,12 +6,13 @@ use clap::Args;
 
 use crate::Outcome;
 use crate::artifacts::write;
-use crate::config::{Crate, Project, canonical, read_optional};
+use crate::config::{Project, canonical, read_optional};
 use crate::error::Error;
 use crate::history;
 use crate::homes::{Doubt, Homes};
 use crate::imports;
 use crate::markdown::code;
+use crate::package::Crate;
 use crate::pages::{self, amount};
 use crate::rewrite;
 use crate::surface;

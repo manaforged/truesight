@@ -7,11 +7,12 @@ use crate::Outcome;
 use crate::artifacts::{self, write};
 use crate::config::{
     BOOK_CONFIG, CONFIG_FILE, DEFAULT_TOOLCHAIN, Project, SUMMARY, VERSION_SLOT, canonical,
-    current_dir, normal, read_book, read_optional, readme_of,
+    current_dir, normal, read_book, read_optional,
 };
 use crate::error::Error;
 use crate::history;
 use crate::markdown::relative;
+use crate::package::readme_of;
 use crate::pages;
 
 const DOCS: &str = "docs";

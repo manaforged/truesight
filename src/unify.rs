@@ -2,11 +2,12 @@ use std::collections::BTreeMap;
 use std::path::PathBuf;
 
 use crate::Outcome;
-use crate::config::{Crate, Project};
+use crate::config::Project;
 use crate::error::Error;
 use crate::markdown::{code, short};
 use crate::modules;
 use crate::origin::{Tree, Via};
+use crate::package::Crate;
 use crate::pages::amount;
 use crate::rustdoc;
 use crate::surface::{self, Kind, Location, Surface};

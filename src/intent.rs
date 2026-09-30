@@ -4,8 +4,9 @@ use std::path::PathBuf;
 use public_api::rustdoc_types::{Crate as Rustdoc, Id, ItemEnum, Module, Type};
 use serde::Deserialize;
 
-use crate::config::{Crate, read_optional};
+use crate::config::read_optional;
 use crate::error::Error;
+use crate::package::Crate;
 
 #[derive(Deserialize, Default)]
 #[serde(deny_unknown_fields)]

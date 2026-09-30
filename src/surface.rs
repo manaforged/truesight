@@ -7,9 +7,10 @@ use public_api::rustdoc_types::{
     Crate as Rustdoc, Deprecation, Id, Item, ItemEnum, ItemKind, Visibility,
 };
 
-use crate::config::{Crate, Project};
+use crate::config::Project;
 use crate::error::Error;
 use crate::features;
+use crate::package::Crate;
 use crate::path::item_path;
 use crate::rustdoc::{self, Build};
 

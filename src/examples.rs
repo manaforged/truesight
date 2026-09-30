@@ -1,8 +1,9 @@
 use std::path::Path;
 
 use crate::artifacts::{Artifact, Doc};
-use crate::config::{Example, Project};
+use crate::config::Project;
 use crate::markdown::{self, Align, code, relative};
+use crate::package::Example;
 use crate::pages::OVERVIEW;
 
 pub fn render(project: &Project, here: &Path, doc: &Doc<'_>) -> Vec<Artifact> {

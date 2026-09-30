@@ -40,6 +40,17 @@ impl Surface {
         })
     }
 
+    pub fn prelude_names(&self) -> BTreeSet<&str> {
+        self.entries
+            .iter()
+            .filter(|entry| self.in_prelude(&entry.path))
+            .filter_map(|entry| {
+                let rest = entry.path.strip_prefix(self.prelude.as_deref()?)?;
+                rest.strip_prefix("::").filter(|name| !name.contains("::"))
+            })
+            .collect()
+    }
+
     pub fn named(&self) -> Vec<Named<'_>> {
         let mut found = self.gather();
         for named in &mut found {
