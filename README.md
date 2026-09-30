@@ -1,8 +1,10 @@
 # truesight
 
 `cargo truesight` writes a Rust crate's API reference from the compiler's
-rustdoc output, and fails a check when the reference in your repository no
-longer matches the code.
+rustdoc output, fails a check when the reference in your repository no
+longer matches the code, and reports the API's health: how large it is, how
+many names a user must learn for each task, and how much of it is
+documented.
 
 Every item, signature, count, and feature gate in the reference comes from
 rustdoc JSON. Nobody types the item list, so it cannot drift: when the code
@@ -16,7 +18,7 @@ release adds its API changes to the book with no extra step.
 | `api/<package>.txt` | The public items and impls, one per line, with the full path, signature, and feature gate. |
 | `<book>/reference/<package>/` | mdBook pages: an overview, one page per module with sections by kind, the API changes in each release, one page per example, and a published copy of the item list. `sync` deletes any other `.md` or `.txt` file in this directory. It does not delete a symbolic link, or look inside a linked directory. |
 | `<book>/llms.txt` | An index of the published pages in the llms.txt format. Its title is the package name, or with several crates the book's `title`, else the package names. |
-| Blocks in Markdown files | Surface counts, the task table, features, the page list, examples, or a release's API changes, inside a README, `SUMMARY.md`, or `CHANGELOG.md`. |
+| Blocks in Markdown files | Surface counts, the task table, features, the page list, examples, the health report, or a release's API changes, inside a README, `SUMMARY.md`, or `CHANGELOG.md`. |
 
 A path that a `pub use` makes lists the item again, with its fields and
 variants, or with the items that a trait declares. Impls, and the methods in
@@ -102,6 +104,7 @@ reqwest                      mod      176
 | `cargo truesight lint` | Items exported at two paths, modules that only re-export, glob re-exports, and task map errors. |
 | `cargo truesight unify` | A plan for one path per item: each extra path and the line that makes it, by file. |
 | `cargo truesight migrate --from v0.1.0 tests` | Rewrites the paths in `tests` that moved since `v0.1.0`. |
+| `cargo truesight health` | One report per crate: the surface, the prelude, the journeys, documentation coverage, and the lint findings. See [Health](#health). |
 
 ## Unify the API
 
@@ -203,6 +206,12 @@ duplicate-path = "warn"
 | `crate.tag` | The release tag pattern. Default: `v{version}`. |
 | `crate.budget` | The most public items the crate may have. Aliases and impl lines do not count; see [Counts](#counts). |
 | `crate.prelude` | A module whose paths are expected aliases, such as `"prelude"`. The crate name can be left out. Default: none. |
+| `crate.prelude-budget` | The number of names the prelude exports. `prelude-budget` denies more and fewer, so the budget only moves by an edit. |
+| `crate.journey-prefix`, `crate.journeys` | The examples whose names start with the prefix are journeys. `journeys` maps each journey to its budget of names. See [Health](#health). |
+| `crate.journey-ignore` | More words that the journey count skips. |
+| `crate.docs` | Markdown files that document the API outside rustdoc. |
+| `crate.doc-sections` | Headings in the `docs` files that list exactly the names of one module, such as `{ "Prelude" = "prelude" }`. `""` names the crate root. |
+| `crate.lint` | Lint levels for this crate. They override `[lint]`. |
 
 Without `truesight.toml`, `cargo truesight` documents the package in the
 current directory with its default features.
@@ -235,7 +244,7 @@ Put a pair of markers in a README, `SUMMARY.md`, or `CHANGELOG.md`:
 
 `sync` writes the block between them, and `check` fails when it is stale.
 Markers inside code fences are left alone. The blocks are `surface`,
-`tasks`, `features`, `pages`, `changes`, and `examples`. When truesight
+`tasks`, `features`, `pages`, `changes`, `examples`, and `health`. When truesight
 documents more than one crate, name the package:
 `<!-- truesight:tasks reqwest -->`.
 
@@ -278,6 +287,43 @@ only has `(re-export only)` after its name.
 `budget` and the `over-budget` lint count public items, so an alias does
 not count against the budget.
 
+## Health
+
+`cargo truesight health` prints one report per crate and exits like
+`check`:
+
+```text
+calc 0.4.0
+  surface     212 items in 5 modules: 21 types, 14 functions, 150 methods, 18 fields, 9 variants, 0 constants; 12 aliases; budget 220
+  app tier    31 prelude names; budget 31
+  journeys    3 journeys, 3 at budget: tour-hello 5/5, tour-sum 9/9, tour-plot 14/14
+  documented  44 of 47 module-level items (93%): 38 by rustdoc, 6 by reference docs
+  doc paths   0 reference rows name paths that are not public
+  findings    3 deny, 0 warn
+generated 14 files, 0 stale
+```
+
+- **Surface** is the [count](#counts) of public items.
+- **App tier** counts the names the `prelude` exports: what a user gets
+  from one glob import.
+- **Journeys** measure how many library names a task costs. A journey is an
+  example whose name starts with `journey-prefix`. truesight counts the
+  distinct words in the example that name a public item of the crate. It
+  skips Rust keywords, primitive types, `std` names such as `String` and
+  `Some`, the words in `journey-ignore`, attributes, comments, strings, and
+  every name the example declares: items, `let` and `for` bindings,
+  parameters, fields, closure parameters, and match-arm bindings. When the
+  example names another crate that truesight documents, that crate's names
+  count too.
+- **Documented** counts the items whose parent is a module: types,
+  functions, constants, statics, and macros. An item is documented when it
+  has rustdoc, or when its name appears in backticks in a table row of a
+  `docs` file.
+- **Doc paths** counts rows in a `docs` table with a `Name` column whose
+  first cell names a path that is not public.
+
+The `health` block writes the same report as a table.
+
 ## Lints
 
 | Lint | Default | Finds |
@@ -288,8 +334,15 @@ not count against the budget.
 | `no-task` | allow | A public function or method that no task calls. |
 | `unknown-path`, `unknown-owner`, `missing-guide`, `duplicate-task` | deny | A task that does not resolve. |
 | `over-budget` | deny | More public items than `budget`. |
+| `prelude-budget` | deny | A prelude with more or fewer names than `prelude-budget`. |
+| `journey-budget` | deny | A journey above or below its budget, a journey without a budget, or a budget without a journey. |
+| `undocumented` | allow | An item without rustdoc or a row in the `docs` files, or a module name missing under its `doc-sections` heading. |
+| `stale-doc` | allow | A row under a `doc-sections` heading that names something the module does not export. |
+| `unknown-doc-path` | allow | A row in a `docs` table with a `Name` column whose first cell names a path that is not public. |
 
-Set `allow`, `warn`, or `deny` for the first four under `[lint]`.
+Set `allow`, `warn`, or `deny` under `[lint]` for `duplicate-path`,
+`glob-reexport`, `reexport-only-module`, `no-task`, `undocumented`,
+`stale-doc`, and `unknown-doc-path`, or for one crate under `[crate.lint]`.
 
 ## Exit codes
 

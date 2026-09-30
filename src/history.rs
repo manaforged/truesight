@@ -3,10 +3,11 @@ use std::process::Command;
 
 use cargo_metadata::semver::Version;
 
-use crate::config::{Crate, Project, VERSION_SLOT};
+use crate::config::{Project, VERSION_SLOT};
 use crate::diff::{Change, Paths};
 use crate::error::Error;
 use crate::markdown::relative;
+use crate::package::Crate;
 
 const UNRELEASED: &str = "Unreleased";
 

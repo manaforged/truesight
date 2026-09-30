@@ -3,11 +3,13 @@ use std::path::{Path, PathBuf};
 use cargo_metadata::semver::Version;
 
 use crate::artifacts::{Doc, Pass};
-use crate::config::{CHANGELOG, Crate, Project, SUMMARY, canonical, normal};
+use crate::config::{CHANGELOG, Project, SUMMARY, canonical, normal};
 use crate::error::Error;
 use crate::examples;
+use crate::health;
 use crate::markdown::{Align, code, link, short, table};
 use crate::modules;
+use crate::package::Crate;
 use crate::pages;
 
 const START: &str = "<!-- truesight:";
@@ -22,6 +24,7 @@ enum Block {
     Pages,
     Changes,
     Examples,
+    Health,
 }
 
 impl Block {
@@ -33,6 +36,7 @@ impl Block {
             "pages" => Some(Self::Pages),
             "changes" => Some(Self::Changes),
             "examples" => Some(Self::Examples),
+            "health" => Some(Self::Health),
             _ => None,
         }
     }
@@ -246,6 +250,7 @@ fn render(
         },
         Block::Changes => changes(marker, doc)?,
         Block::Examples => example_table(doc, here),
+        Block::Health => health::block(project, doc)?,
     }))
 }
 

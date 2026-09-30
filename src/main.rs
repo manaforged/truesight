@@ -2,21 +2,26 @@ mod aliases;
 mod artifacts;
 mod blocks;
 mod config;
+mod coverage;
 mod diff;
 mod error;
 mod examples;
 mod features;
+mod health;
 mod history;
 mod homes;
 mod imports;
 mod init;
 mod intent;
+mod journeys;
+mod levels;
 mod lint;
 mod llms;
 mod markdown;
 mod migrate;
 mod modules;
 mod origin;
+mod package;
 mod pages;
 mod path;
 mod rewrite;
@@ -38,7 +43,7 @@ use crate::error::Error;
 enum Cargo {
     #[command(
         version,
-        about = "API reference generated from what the compiler sees, with a gate that stops drift",
+        about = "API reference and health checks generated from what the compiler sees, with a gate that stops drift",
         after_help = "Run `cargo truesight` in a crate to print its public API.\nRun `cargo truesight init` to set up a workspace."
     )]
     Truesight(Cli),
@@ -70,6 +75,8 @@ enum Command {
     Sync,
     #[command(about = "Fail when a generated file is stale or a lint denies")]
     Check,
+    #[command(about = "Print the API health: surface, app tier, journeys, docs, and findings")]
+    Health,
     #[command(about = "Write a starter truesight.toml for this workspace")]
     Init,
     #[command(about = "Plan one path per public item: every alias and the line that makes it")]
@@ -107,6 +114,7 @@ fn run(cli: Cli) -> Result<Outcome, Error> {
         Command::Lint => lint::run(&load()?),
         Command::Sync => artifacts::sync(&load()?),
         Command::Check => artifacts::check(&load()?),
+        Command::Health => health::run(&load()?),
         Command::Unify => unify::run(&load()?),
         Command::Migrate(args) => migrate::run(&load()?, &args),
     }

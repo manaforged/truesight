@@ -9,8 +9,9 @@ use public_api::rustdoc_types::Crate as Rustdoc;
 use serde::Deserialize;
 use serde::de::DeserializeOwned;
 
-use crate::config::{Crate, DEFAULT_TOOLCHAIN, Project};
+use crate::config::{DEFAULT_TOOLCHAIN, Project};
 use crate::error::Error;
+use crate::package::Crate;
 
 const FORMATS: RangeInclusive<u32> = 59..=61;
 const OUTPUT_LINES: usize = 40;

@@ -3,11 +3,12 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Path, PathBuf};
 
 use crate::artifacts::write;
-use crate::config::{Crate, canonical, read_optional};
+use crate::config::{canonical, read_optional};
 use crate::error::Error;
 use crate::homes::Homes;
 use crate::markdown::code;
 use crate::migrate::{Left, Tally, internal};
+use crate::package::Crate;
 use crate::source::{Scope, Source, is_ident};
 use crate::surface::Kind;
 

@@ -195,6 +195,19 @@ impl<'t> Source<'t> {
         }
     }
 
+    pub fn code(&self) -> String {
+        let mut code = String::with_capacity(self.text.len());
+        let mut at = 0;
+        for &(start, end) in &self.quiet {
+            code.push_str(self.text.get(at..start).unwrap_or_default());
+            let masked = self.text.get(start..end).unwrap_or_default();
+            code.extend(masked.chars().map(|ch| if ch == '\n' { ch } else { ' ' }));
+            at = end;
+        }
+        code.push_str(self.text.get(at..).unwrap_or_default());
+        code
+    }
+
     fn quiet_at(&self, offset: usize) -> Option<(usize, usize)> {
         let index = self.quiet.partition_point(|(start, _)| *start <= offset);
         index

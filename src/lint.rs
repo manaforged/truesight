@@ -1,45 +1,19 @@
 use std::collections::{BTreeSet, HashSet};
 use std::fmt;
 
-use serde::Deserialize;
-
 use crate::Outcome;
 use crate::artifacts::{self, Doc};
-use crate::config::{Crate, Project};
+use crate::config::Project;
+use crate::coverage;
 use crate::error::Error;
 use crate::intent::{self, Task};
+use crate::journeys;
+use crate::levels::{Level, LintLevels};
 use crate::markdown::short;
 use crate::modules::{self, Counts, Module};
+use crate::package::Crate;
 use crate::rustdoc;
 use crate::surface::{Kind, Surface};
-
-#[derive(Deserialize, Clone, Copy, PartialEq, Eq, Debug)]
-#[serde(rename_all = "kebab-case")]
-pub enum Level {
-    Allow,
-    Warn,
-    Deny,
-}
-
-#[derive(Deserialize, Clone, Copy)]
-#[serde(deny_unknown_fields, rename_all = "kebab-case", default)]
-pub struct LintLevels {
-    pub duplicate_path: Level,
-    pub glob_reexport: Level,
-    pub reexport_only_module: Level,
-    pub no_task: Level,
-}
-
-impl Default for LintLevels {
-    fn default() -> Self {
-        Self {
-            duplicate_path: Level::Warn,
-            glob_reexport: Level::Warn,
-            reexport_only_module: Level::Warn,
-            no_task: Level::Allow,
-        }
-    }
-}
 
 #[derive(Clone, Copy)]
 enum Lint {
@@ -52,6 +26,11 @@ enum Lint {
     DuplicateTask,
     MissingGuide,
     OverBudget,
+    PreludeBudget,
+    JourneyBudget,
+    Undocumented,
+    StaleDoc,
+    UnknownDocPath,
 }
 
 impl Lint {
@@ -66,6 +45,11 @@ impl Lint {
             Self::DuplicateTask => "duplicate-task",
             Self::MissingGuide => "missing-guide",
             Self::OverBudget => "over-budget",
+            Self::PreludeBudget => "prelude-budget",
+            Self::JourneyBudget => "journey-budget",
+            Self::Undocumented => "undocumented",
+            Self::StaleDoc => "stale-doc",
+            Self::UnknownDocPath => "unknown-doc-path",
         }
     }
 
@@ -75,11 +59,16 @@ impl Lint {
             Self::GlobReexport => levels.glob_reexport,
             Self::ReexportOnlyModule => levels.reexport_only_module,
             Self::NoTask => levels.no_task,
+            Self::Undocumented => levels.undocumented,
+            Self::StaleDoc => levels.stale_doc,
+            Self::UnknownDocPath => levels.unknown_doc_path,
             Self::UnknownPath
             | Self::UnknownOwner
             | Self::DuplicateTask
             | Self::MissingGuide
-            | Self::OverBudget => Level::Deny,
+            | Self::OverBudget
+            | Self::PreludeBudget
+            | Self::JourneyBudget => Level::Deny,
         }
     }
 }
@@ -150,7 +139,7 @@ pub fn findings(
     tasks: &[Task],
 ) -> Result<Vec<Finding>, Error> {
     let mut report = Report {
-        levels: project.lint,
+        levels: krate.lint,
         findings: Vec::new(),
     };
     let modules = modules::of(surface);
@@ -175,7 +164,60 @@ pub fn findings(
             format!("{items} public items exceed the budget of {budget}"),
         );
     }
+    prelude_budget(krate, surface, &mut report);
+    for problem in journeys::problems(krate, &journeys::measure(project, krate, &surface.spine())?)
+    {
+        report.add(Lint::JourneyBudget, problem);
+    }
+    if report.levels.undocumented != Level::Allow || report.levels.stale_doc != Level::Allow {
+        documentation(project, krate, surface, &mut report)?;
+    }
+    if report.levels.unknown_doc_path != Level::Allow {
+        for message in coverage::unknown_paths(project, krate, surface)? {
+            report.add(Lint::UnknownDocPath, message);
+        }
+    }
     Ok(report.findings)
+}
+
+fn prelude_budget(krate: &Crate, surface: &Surface, report: &mut Report) {
+    let Some(budget) = krate.prelude_budget else {
+        return;
+    };
+    let count = surface.prelude_names().len();
+    if count > budget {
+        report.add(
+            Lint::PreludeBudget,
+            format!("the prelude exports {count} names, over its budget of {budget}"),
+        );
+    } else if count < budget {
+        report.add(
+            Lint::PreludeBudget,
+            format!("the prelude exports {count} names; lower its budget from {budget} to {count}"),
+        );
+    }
+}
+
+fn documentation(
+    project: &Project,
+    krate: &Crate,
+    surface: &Surface,
+    report: &mut Report,
+) -> Result<(), Error> {
+    for path in coverage::measure(krate, surface)?.missing {
+        report.add(
+            Lint::Undocumented,
+            format!("`{path}` has no rustdoc and no row in the reference docs"),
+        );
+    }
+    let gaps = coverage::sections(project, krate, surface)?;
+    for message in gaps.undocumented {
+        report.add(Lint::Undocumented, message);
+    }
+    for message in gaps.stale {
+        report.add(Lint::StaleDoc, message);
+    }
+    Ok(())
 }
 
 fn reexport_modules(surface: &Surface, modules: &[Module<'_>], report: &mut Report) {
