@@ -403,3 +403,9 @@ off. When an item needs any one of several gates, it builds once more per
 gate with only that gate on. The builds run in parallel. truesight does not
 parse Rust source to build the list. Only `migrate` edits source text, with
 the rules in [Unify the API](#unify-the-api).
+
+## Contributing
+
+truesight does not accept external pull requests until its API is more
+stable. To report a bug or request a feature, open an
+[issue](https://github.com/manaforged/truesight/issues).
