@@ -16,7 +16,7 @@ release adds its API changes to the book with no extra step.
 | Output | Contents |
 | --- | --- |
 | `api/<package>.txt` | The public items and impls, one per line, with the full path, signature, and feature gate. |
-| `<book>/reference/<package>/` | mdBook pages: an overview, one page per module with sections by kind, the API changes in each release, one page per example, and a published copy of the item list. `sync` deletes any other `.md` or `.txt` file in this directory. It does not delete a symbolic link, or look inside a linked directory. |
+| `<book>/reference/<package>/` | mdBook pages: an overview, one page per module with sections by kind, each type's methods, fields, variants, and trait implementations with short signatures that link to the crate's own types, the API changes in each release, one page per example, and a published copy of the item list. `sync` deletes any other `.md` or `.txt` file in this directory. It does not delete a symbolic link, or look inside a linked directory. |
 | `<book>/llms.txt` | An index of the published pages in the llms.txt format. Its title is the package name, or with several crates the book's `title`, else the package names. |
 | Blocks in Markdown files | Surface counts, the task table, features, the page list, examples, the health report, or a release's API changes, inside a README, `SUMMARY.md`, or `CHANGELOG.md`. |
 
@@ -371,9 +371,9 @@ could not run.
   `git fetch --unshallow --tags` in the shallow clone.
 - `diff <ref>` reads the item list committed at that ref. When the ref has
   no `api/<package>.txt`, it exits 2 and names the file and the ref.
-- The reference has no prose for single items, because the code has no
-  comments. When a crate has doc comments, each type's page shows the first
-  line. Guides stay in Markdown chapters, and tasks link to them.
+- The reference shows the first line of each item's doc comment. An item
+  with no doc comment shows the names of the tasks that call it, or nothing.
+  Guides stay in Markdown chapters, and tasks link to them.
 - A gate marks the lines that disappear when truesight builds without that
   feature: `#[cfg(feature = "a")]` for one gate, `#[cfg(all(...))]` when an
   item needs several, and `#[cfg(any(...))]` when any one of them is enough.
