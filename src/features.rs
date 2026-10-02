@@ -13,6 +13,7 @@ pub struct Plan {
     pub gates: Vec<(String, Vec<String>)>,
     pub none: Option<Vec<String>>,
     pub only: Vec<(String, Vec<String>)>,
+    pub implies: HashMap<String, Vec<String>>,
 }
 
 pub fn plan(krate: &Crate) -> Result<Plan, Error> {
@@ -56,11 +57,26 @@ pub fn plan(krate: &Crate) -> Result<Plan, Error> {
             })
             .collect()
     });
+    let implies = krate
+        .gates
+        .iter()
+        .map(|gate| {
+            let reached = closure(table, [gate.as_str()]);
+            let others = krate
+                .gates
+                .iter()
+                .filter(|other| *other != gate && reached.contains(other.as_str()))
+                .cloned()
+                .collect();
+            (gate.clone(), others)
+        })
+        .collect();
     Ok(Plan {
         base: owned(&enabled),
         gates,
         none: none.as_ref().map(owned),
         only,
+        implies,
     })
 }
 
@@ -266,6 +282,17 @@ fn required_gates(plan: &Plan, wave: &Wave) -> HashMap<String, Vec<String>> {
                 .entry(entry.line.clone())
                 .or_default()
                 .push(gate.clone());
+        }
+    }
+    for gates in found.values_mut() {
+        let implied: HashSet<String> = gates
+            .iter()
+            .filter_map(|gate| plan.implies.get(gate))
+            .flatten()
+            .cloned()
+            .collect();
+        if gates.iter().any(|gate| !implied.contains(gate)) {
+            gates.retain(|gate| !implied.contains(gate));
         }
     }
     found
