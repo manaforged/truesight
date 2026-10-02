@@ -19,6 +19,28 @@ fn the_overview_page_links_each_task_to_its_type() {
 }
 
 #[test]
+fn a_type_lists_members_by_short_signature_and_links_crate_types() {
+    let fixture = Fixture::new("members");
+    fixture.book();
+    fixture.write(
+        "api/fixture.toml",
+        "[[task]]\nname = \"Make a circle\"\ncall = \"Circle::new\"\n",
+    );
+    fixture.succeed(&["sync"]);
+    let shapes = fixture.read("book/reference/fixture/fixture-shapes.md");
+    assert!(
+        shapes.contains("| <code>new(radius: f64) -&gt; Self</code> | Make a circle. |"),
+        "{shapes}"
+    );
+    assert!(!shapes.contains("fixture::shapes::Circle::"), "{shapes}");
+    let root = fixture.read("book/reference/fixture/fixture.md");
+    assert!(
+        root.contains("<code>From&lt;<a href=\"fixture-shapes.html#circle\">Circle</a>&gt;</code>"),
+        "{root}"
+    );
+}
+
+#[test]
 fn sync_removes_a_page_that_no_module_generates() {
     let fixture = Fixture::new("stale-page");
     fixture.book();
