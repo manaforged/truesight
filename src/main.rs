@@ -13,6 +13,7 @@ mod homes;
 mod imports;
 mod init;
 mod intent;
+mod items;
 mod journeys;
 mod levels;
 mod lint;
@@ -69,6 +70,8 @@ struct Cli {
 enum Command {
     #[command(about = "Print the public API: a summary, or every item that matches")]
     Show(show::ShowArgs),
+    #[command(about = "Print the item list on disk as JSON, with each line's kind and path")]
+    Items,
     #[command(about = "List API changes against the spine or a git ref")]
     Diff(diff::DiffArgs),
     #[command(about = "Report API shape findings and task map errors")]
@@ -112,6 +115,7 @@ fn run(cli: Cli) -> Result<Outcome, Error> {
     match command {
         Command::Init => init::run(),
         Command::Show(args) => show::run(&load()?, &args),
+        Command::Items => items::run(&load()?),
         Command::Diff(args) => diff::run(&load()?, &args),
         Command::Lint => lint::run(&load()?),
         Command::Sync => artifacts::sync(&load()?),
