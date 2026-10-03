@@ -99,6 +99,7 @@ reqwest                      mod      176
 | --- | --- |
 | `cargo truesight show RequestBuilder::` | Every item whose path contains `RequestBuilder::`. |
 | `cargo truesight show --kind trait --where` | Every public trait, and the file and line that define it. |
+| `cargo truesight items` | The item list on disk as JSON: each crate's file, and each line with its kind and path. It builds nothing. |
 | `cargo truesight diff` | API changes since the last `sync`. |
 | `cargo truesight diff v0.1.0 --format changelog` | API changes since a git ref, as changelog bullets. |
 | `cargo truesight lint` | Items exported at two paths, modules that only re-export, glob re-exports, and task map errors. |
