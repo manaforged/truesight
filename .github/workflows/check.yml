@@ -6,6 +6,8 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
+  schedule:
+    - cron: '17 6 * * 1'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -19,7 +21,11 @@ env:
 
 jobs:
   check:
-    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
@@ -34,9 +40,23 @@ jobs:
       - name: Run tests
         run: cargo test --locked
 
+  msrv:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+        with:
+          persist-credentials: false
+      - name: Read the minimum supported Rust version
+        run: echo "MSRV=$(sed -n 's/^rust-version = "\(.*\)"$/\1/p' Cargo.toml)" >> "$GITHUB_ENV"
+      - name: Install the minimum supported toolchain
+        run: rustup toolchain install "$MSRV" --profile minimal
+      - name: Build with the minimum supported toolchain
+        run: cargo "+$MSRV" check --locked
+
   required:
     name: required
-    needs: [check]
+    needs: [check, msrv]
     if: always()
     runs-on: ubuntu-latest
     timeout-minutes: 5

@@ -171,6 +171,7 @@ pub fn staleness(project: &Project, docs: &[Doc<'_>]) -> Result<(usize, Vec<Stal
 pub fn check(project: &Project) -> Result<Outcome, Error> {
     let docs = document(project)?;
     note_history(project, &docs);
+    note_skipped(project);
     let (generated, stale) = staleness(project, &docs)?;
     for file in &stale {
         if !file.generated {
@@ -216,6 +217,35 @@ fn note_history(project: &Project, docs: &[Doc<'_>]) {
         eprintln!(
             "note: {} is a shallow clone, so truesight cannot read the releases whose tags are outside the fetched history; fetch the full history with `git fetch --unshallow --tags`, or set `fetch-depth: 0` on `actions/checkout`",
             project.root.display()
+        );
+    }
+}
+
+fn note_skipped(project: &Project) {
+    if project.skipped.is_empty() {
+        return;
+    }
+    if let Some(book) = &project.book {
+        eprintln!(
+            "note: `-p` skips {}, which covers every package",
+            project.show(&llms::path(book))
+        );
+    }
+    if !project.markdown.is_empty() {
+        eprintln!(
+            "note: `-p` skips the blocks for {} in {}",
+            project
+                .skipped
+                .iter()
+                .map(|name| format!("`{name}`"))
+                .collect::<Vec<_>>()
+                .join(", "),
+            project
+                .markdown
+                .iter()
+                .map(|file| project.show(file))
+                .collect::<Vec<_>>()
+                .join(", ")
         );
     }
 }

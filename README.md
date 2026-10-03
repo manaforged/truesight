@@ -39,11 +39,14 @@ A line of `api/<package>.txt`:
 
 ## Install
 
-truesight is not on crates.io. Install it from the repository:
+truesight is not on crates.io. Install it from the repository, pinned to a
+commit so that every machine and CI run uses the same build:
 
 ```sh
-cargo install --locked --git https://github.com/manaforged/truesight
+cargo install --locked --git https://github.com/manaforged/truesight --rev <sha>
 ```
+
+Replace `<sha>` with a commit from the repository history.
 
 ## Set up a workspace
 
@@ -370,6 +373,12 @@ could not run.
   and `check` print a note when the clone is shallow. Fetch the full history:
   set `fetch-depth: 0` on `actions/checkout`, or run
   `git fetch --unshallow --tags` in the shallow clone.
+- Outside a git repository, there is no release history. `check` does not
+  compare the changes pages or `changes` blocks, and `sync` keeps them as
+  they are. Both print a note.
+- `check -p <package>` compares only that package's files. It does not
+  compare `llms.txt` or the blocks of the other packages, and it prints a
+  note to stderr that names them. Run `check` without `-p` to cover them.
 - `diff <ref>` reads the item list committed at that ref. When the ref has
   no `api/<package>.txt`, it exits 2 and names the file and the ref.
 - The reference shows the first line of each item's doc comment. An item
