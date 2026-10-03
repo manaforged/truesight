@@ -10,6 +10,7 @@ readme = "README.md"
 keywords = ["rustdoc", "api", "documentation", "mdbook", "semver"]
 categories = ["development-tools::cargo-plugins", "command-line-utilities"]
 publish = false
+include = ["src/**", "Cargo.toml", "Cargo.lock", "README.md", "LICENSE"]
 
 [[bin]]
 name = "cargo-truesight"

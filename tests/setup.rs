@@ -232,3 +232,23 @@ fn init_without_a_library_crate_writes_nothing() {
         "init scaffolded a book before it stopped"
     );
 }
+
+#[test]
+fn check_for_one_package_names_the_shared_files_it_does_not_compare() {
+    let fixture = Fixture::new("check-one-package");
+    fixture.write("book/book.toml", "[book]\ntitle = \"guide\"\n");
+    fixture.write("book/src/SUMMARY.md", "# Summary\n\n- [Guide](guide.md)\n");
+    workspace(&fixture);
+    fixture.succeed(&["init"]);
+    fixture.append(
+        "beta/src/lib.rs",
+        "\npub fn beta_only() -> u8 {\n    9\n}\n",
+    );
+    let run = fixture.run(&["check", "-p", "alpha"]);
+    assert_eq!(run.code, 0, "{}{}", run.stdout, run.stderr);
+    assert!(
+        run.stderr.contains("`-p` skips book/src/llms.txt"),
+        "{}",
+        run.stderr
+    );
+}

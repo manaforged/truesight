@@ -1,4 +1,4 @@
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use crate::artifacts::{Artifact, Doc};
 use crate::config::read_book;
@@ -7,6 +7,10 @@ use crate::examples;
 use crate::markdown::{link, short};
 use crate::modules;
 use crate::pages;
+
+pub fn path(book: &Path) -> PathBuf {
+    book.join("llms.txt")
+}
 
 pub fn render(book: &Path, docs: &[Doc<'_>]) -> Result<Artifact, Error> {
     let title = match docs {
@@ -71,7 +75,7 @@ pub fn render(book: &Path, docs: &[Doc<'_>]) -> Result<Artifact, Error> {
         }
     }
     Ok(Artifact {
-        path: book.join("llms.txt"),
+        path: path(book),
         content: out,
     })
 }
