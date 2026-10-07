@@ -7,6 +7,35 @@ pub enum Align {
     Right,
 }
 
+pub fn skip_fenced(fence: &mut Option<(char, usize)>, line: &str) -> bool {
+    if let Some(open) = *fence {
+        if closes(line, open) {
+            *fence = None;
+        }
+        return true;
+    }
+    *fence = opens(line);
+    fence.is_some()
+}
+
+fn opens(line: &str) -> Option<(char, usize)> {
+    let trimmed = line.trim_start();
+    let marker = trimmed
+        .chars()
+        .next()
+        .filter(|first| *first == '`' || *first == '~')?;
+    let count = trimmed
+        .chars()
+        .take_while(|current| *current == marker)
+        .count();
+    (count >= 3).then_some((marker, count))
+}
+
+fn closes(line: &str, (marker, count): (char, usize)) -> bool {
+    let trimmed = line.trim();
+    trimmed.chars().count() >= count && trimmed.chars().all(|current| current == marker)
+}
+
 pub fn table(header: &[(&str, Align)], rows: &[Vec<String>]) -> String {
     let mut out = row(header.iter().map(|(name, _)| (*name).to_owned()));
     out.push_str(&row(header.iter().map(|(_, align)| match align {

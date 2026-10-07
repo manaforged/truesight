@@ -214,7 +214,7 @@ duplicate-path = "warn"
 | `crate.journey-prefix`, `crate.journeys` | The examples whose names start with the prefix are journeys. `journeys` maps each journey to its budget of names. See [Health](#health). |
 | `crate.journey-ignore` | More words that the journey count skips. |
 | `crate.docs` | Markdown files that document the API outside rustdoc. |
-| `crate.doc-sections` | Headings in the `docs` files that list exactly the names of one module, such as `{ "Prelude" = "prelude" }`. `""` names the crate root. |
+| `crate.doc-sections` | Headings in the `docs` files whose tables list exactly the names of one module, such as `{ "Prelude" = "prelude" }`. `""` names the crate root. Fenced code examples do not change the heading or count as table rows. |
 | `crate.lint` | Lint levels for this crate. They override `[lint]`. |
 
 Without `truesight.toml`, `cargo truesight` documents the package in the
@@ -322,7 +322,7 @@ generated 14 files, 0 stale
 - **Documented** counts the items whose parent is a module: types,
   functions, constants, statics, and macros. An item is documented when it
   has rustdoc, or when its name appears in backticks in a table row of a
-  `docs` file.
+  `docs` file. Tables need a header and separator outside fenced code.
 - **Doc paths** counts rows in a `docs` table with a `Name` column whose
   first cell names a path that is not public.
 

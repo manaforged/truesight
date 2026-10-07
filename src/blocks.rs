@@ -7,7 +7,7 @@ use crate::config::{CHANGELOG, Project, SUMMARY, canonical, normal};
 use crate::error::Error;
 use crate::examples;
 use crate::health;
-use crate::markdown::{Align, code, link, short, table};
+use crate::markdown::{Align, code, link, short, skip_fenced, table};
 use crate::modules;
 use crate::package::Crate;
 use crate::pages;
@@ -101,17 +101,6 @@ pub fn fill(
     Ok(found.then_some(out))
 }
 
-fn skip_fenced(fence: &mut Option<(char, usize)>, line: &str) -> bool {
-    if let Some(open) = *fence {
-        if closes(line, open) {
-            *fence = None;
-        }
-        return true;
-    }
-    *fence = opens(line);
-    fence.is_some()
-}
-
 fn emit(
     out: &mut String,
     lines: &[&str],
@@ -155,24 +144,6 @@ fn block_end(lines: &[&str], from: usize) -> Option<Result<usize, ()>> {
 
 fn spec(line: &str) -> Option<&str> {
     line.trim().strip_prefix(START)?.strip_suffix(CLOSE)
-}
-
-fn opens(line: &str) -> Option<(char, usize)> {
-    let trimmed = line.trim_start();
-    let marker = trimmed
-        .chars()
-        .next()
-        .filter(|first| *first == '`' || *first == '~')?;
-    let count = trimmed
-        .chars()
-        .take_while(|current| *current == marker)
-        .count();
-    (count >= 3).then_some((marker, count))
-}
-
-fn closes(line: &str, (marker, count): (char, usize)) -> bool {
-    let trimmed = line.trim();
-    trimmed.chars().count() >= count && trimmed.chars().all(|current| current == marker)
 }
 
 fn parse(spec: &str) -> Result<Marker<'_>, String> {
