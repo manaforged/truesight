@@ -4,7 +4,7 @@ use std::path::{Path, PathBuf};
 use crate::config::{Project, read_optional};
 use crate::error::Error;
 use crate::journeys;
-use crate::markdown::short;
+use crate::markdown::{short, skip_fenced};
 use crate::package::Crate;
 use crate::surface::{Kind, Surface};
 
@@ -211,9 +211,15 @@ fn rows(krate: &Crate) -> Result<Vec<Row>, Error> {
     for file in &krate.docs {
         let text = read_optional(file)?.unwrap_or_default();
         let mut headings: Vec<(usize, String)> = Vec::new();
-        let mut named = false;
+        let mut fence = None;
+        let mut named = None;
         let mut previous = "";
         for (index, line) in text.lines().enumerate() {
+            if skip_fenced(&mut fence, line) {
+                named = None;
+                previous = "";
+                continue;
+            }
             let trimmed = line.trim_start();
             let level = trimmed.chars().take_while(|ch| *ch == '#').count();
             if level > 0 && trimmed.chars().nth(level) == Some(' ') {
@@ -222,16 +228,17 @@ fn rows(krate: &Crate) -> Result<Vec<Row>, Error> {
                     level,
                     trimmed.get(level..).unwrap_or_default().trim().to_owned(),
                 ));
-                named = false;
+                named = None;
             } else if trimmed.starts_with('|') {
                 if separator(trimmed) {
-                    named = cells(previous).first().is_some_and(|cell| *cell == "Name");
-                } else if previous.trim_start().starts_with('|') {
+                    named = (previous.trim_start().starts_with('|') && !separator(previous))
+                        .then(|| cells(previous).first().is_some_and(|cell| *cell == "Name"));
+                } else if let Some(named) = named {
                     let titles = headings.iter().map(|(_, title)| title.clone()).collect();
                     rows.push(row(file, index + 1, titles, named, trimmed));
                 }
             } else {
-                named = false;
+                named = None;
             }
             previous = line;
         }

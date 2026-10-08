@@ -160,6 +160,74 @@ fn a_documented_section_must_match_the_module_it_names() {
 }
 
 #[test]
+fn fenced_examples_do_not_change_documentation_sections_or_supply_rows() {
+    let fixture = Fixture::new("fenced-doc-sections");
+    fixture.write(
+        "src/lib.rs",
+        "pub mod prelude { pub fn left() {} pub fn right() {} }\n",
+    );
+    fixture.write(
+        "truesight.toml",
+        &format!(
+            "{CONFIG}docs = [\"docs/api.md\"]\ndoc-sections = {{ \"Prelude\" = \"prelude\" }}\n\n[lint]\nundocumented = \"deny\"\nstale-doc = \"deny\"\nunknown-doc-path = \"deny\"\n"
+        ),
+    );
+    let docs = r#"# API
+## Prelude
+| Name | Purpose |
+| --- | --- |
+| `left` | Listed before the example. |
+
+````rust
+# fn main() {
+| Name | Purpose |
+| --- | --- |
+| `right` | Only example text. |
+| `phantom` | Not an API item. |
+```
+# }
+````
+| `phantom` | Not a table header. |
+| `right` | Not a table body. |
+
+~~~text
+# Another example heading
+| Name | Purpose |
+| --- | --- |
+| `phantom` | Not an API item. |
+~~~
+
+### Remaining
+| Name | Purpose |
+| --- | --- |
+| `right` | Listed after both examples. |
+"#;
+    fixture.write("docs/api.md", docs);
+    fixture.succeed(&["lint"]);
+    fixture.write(
+        "docs/api.md",
+        &docs.replace("| `right` | Listed after both examples. |\n", ""),
+    );
+    let missing = fixture.run(&["lint"]);
+    assert_eq!(missing.code, 1, "{}{}", missing.stdout, missing.stderr);
+    assert!(
+        missing
+            .stdout
+            .contains("`prelude::right` has no rustdoc and no row"),
+        "{}",
+        missing.stdout
+    );
+    assert!(
+        missing
+            .stdout
+            .contains("`fixture::prelude::right` has no row under `Prelude`"),
+        "{}",
+        missing.stdout
+    );
+    assert!(!missing.stdout.contains("phantom"), "{}", missing.stdout);
+}
+
+#[test]
 fn a_reference_row_that_names_no_public_path_is_reported() {
     let fixture = Fixture::new("unknown-doc-path");
     fixture.write(
