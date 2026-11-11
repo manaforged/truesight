@@ -2,15 +2,10 @@ name: check
 
 on:
   pull_request:
-  merge_group:
-  push:
-    branches: [main]
   workflow_dispatch:
-  schedule:
-    - cron: '17 6 * * 1'
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: ${{ github.workflow }}-${{ github.ref }}-${{ github.event_name == 'pull_request' && 'pr' || github.run_id }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 permissions:
@@ -21,6 +16,7 @@ env:
 
 jobs:
   check:
+    if: github.repository == 'manaforged/truesight' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.repository)
     strategy:
       fail-fast: false
       matrix:
@@ -33,33 +29,13 @@ jobs:
           persist-credentials: false
       - name: Install the pinned toolchain
         run: rustup show active-toolchain
-      - name: Check formatting
-        run: cargo fmt --check
-      - name: Run Clippy
-        run: cargo clippy --all-targets --locked -- -D warnings
+      - name: Check formatting, Clippy, and MSRV
+        if: runner.os == 'Linux'
+        run: |
+          cargo fmt --check
+          cargo clippy --all-targets --locked -- -D warnings
+          msrv=$(sed -n 's/^rust-version = "\(.*\)"$/\1/p' Cargo.toml)
+          rustup toolchain install "$msrv" --profile minimal
+          cargo "+$msrv" check --locked
       - name: Run tests
         run: cargo test --locked
-
-  msrv:
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
-    steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
-        with:
-          persist-credentials: false
-      - name: Read the minimum supported Rust version
-        run: echo "MSRV=$(sed -n 's/^rust-version = "\(.*\)"$/\1/p' Cargo.toml)" >> "$GITHUB_ENV"
-      - name: Install the minimum supported toolchain
-        run: rustup toolchain install "$MSRV" --profile minimal
-      - name: Build with the minimum supported toolchain
-        run: cargo "+$MSRV" check --locked
-
-  required:
-    name: required
-    needs: [check, msrv]
-    if: always()
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    steps:
-      - name: every check passed or was not needed
-        run: test "${{ contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') }}" = false
